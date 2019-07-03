@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using System.IO;
 using LiteDB;
 using AnyPackageManagerCache.Filters;
+using AnyPackageManagerCache.Extensions;
 
 namespace AnyPackageManagerCache.Controllers
 {
@@ -77,15 +78,9 @@ namespace AnyPackageManagerCache.Controllers
                 var match = FragmentRegex.Match(response.RequestMessage.RequestUri.Fragment);
                 if (match.Success)
                 {
-                    using (var algorithm = HashAlgorithm.Create(HashAlgorithmName.SHA256.Name))
+                    if (!buffer.Hash(HashAlgorithmName.SHA256).Equals(match.Groups[2].Value, StringComparison.OrdinalIgnoreCase))
                     {
-                        var hashBytes = algorithm.ComputeHash(buffer);
-                        var hashString = BitConverter.ToString(hashBytes).Replace("-", String.Empty);
-
-                        if (!hashString.Equals(match.Groups[2].Value, StringComparison.OrdinalIgnoreCase))
-                        {
-                            return this.StatusCode((int)HttpStatusCode.InternalServerError, "hashes not matches");
-                        }
+                        return this.StatusCode((int)HttpStatusCode.InternalServerError, "hashes not matches");
                     }
                 }
 
