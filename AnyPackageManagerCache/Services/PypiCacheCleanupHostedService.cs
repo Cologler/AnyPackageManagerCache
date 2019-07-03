@@ -23,8 +23,8 @@ namespace AnyPackageManagerCache.Services
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            this._logger.LogInformation("Starting.");
-            this._timer = new Timer(this.DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(600));
+            this._logger.LogInformation("Starting, run after 30s.");
+            this._timer = new Timer(this.DoWork, null, TimeSpan.FromSeconds(30), TimeSpan.FromHours(12));
             return Task.CompletedTask;
         }
 
