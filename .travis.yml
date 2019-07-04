@@ -7,3 +7,13 @@ script:
  - ls
  - dotnet restore
  - dotnet publish -c Release /p:PublishProfile="AnyPackageManagerCache\Properties\PublishProfiles\FolderProfile.pubxml"
+before_deploy:
+ - cd AnyPackageManagerCache/bin/Release/netcoreapp2.2
+ - mv publish apmc
+ - tar -cf apmc.tar.gz apmc
+deploy:
+  provider: releases
+  api_key: $GITHUB_TOKEN
+  file: apmc.tar.gz
+  skip_cleanup: true
+  draft: true
