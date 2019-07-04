@@ -106,7 +106,7 @@ namespace AnyPackageManagerCache.Services
 
         public async Task<IActionResult> GetPackageInfoAsync(ControllerBase controller,
             ILiteDBDatabaseService databaseService, string packageName,
-            HttpClient httpClient, string remoteUrl,
+            HttpClient httpClient, string remoteUrl, IPackageIndexUpdateService updateService, 
             ITextRewriter rewriter = null, ILogger logger = null)
         {
             logger = logger ?? this._logger;
@@ -145,17 +145,7 @@ namespace AnyPackageManagerCache.Services
             {
                 logger.LogInformation("Hit index cache: {}", packageName);
                 body = packageInfo.BodyContent;
-
-                this._serviceProvider.GetRequiredService<WorkerService>().AddJob(async (provider, workerLogger) =>
-                {
-                    var response = await httpClient.GetOrNullAsync(remoteUrl, HttpCompletionOption.ResponseContentRead, workerLogger);
-                    if (response?.IsSuccessStatusCode == true)
-                    {
-                        provider.GetRequiredService<LiteDBDatabaseService<Features.Pypi>>()
-                            .UpdatePackageIndex(packageName, await response.Content.ReadAsStringAsync());
-                    }
-                    response?.Dispose();
-                });
+                updateService.Add(packageName);
             }
 
             body = rewriter?.Rewrite(body) ?? body;

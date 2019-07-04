@@ -26,11 +26,14 @@ namespace AnyPackageManagerCache.Controllers.Pypi
 
         private readonly LiteDBDatabaseService<Features.Pypi> _database;
         private readonly ProxyService _proxyService;
+        private readonly PackageIndexUpdateService<Features.Pypi> _updateService;
 
-        public SimpleController(LiteDBDatabaseService<Features.Pypi> database, ProxyService proxyService)
+        public SimpleController(LiteDBDatabaseService<Features.Pypi> database, ProxyService proxyService,
+            PackageIndexUpdateService<Features.Pypi> updateService)
         {
             this._database = database;
             this._proxyService = proxyService;
+            this._updateService = updateService;
         }
 
         [HttpGet]
@@ -41,7 +44,8 @@ namespace AnyPackageManagerCache.Controllers.Pypi
         {
             var remoteUrl = $"{packageName}/";
             return this._proxyService.GetPackageInfoAsync(
-                this, this._database, packageName, SimpleHttpClient, remoteUrl, new PrefixRewriter(this));
+                this, this._database, packageName, SimpleHttpClient, remoteUrl, 
+                this._updateService, new PrefixRewriter(this));
         }
 
         internal class PrefixRewriter : HtmlRewriter

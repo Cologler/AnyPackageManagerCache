@@ -31,14 +31,16 @@ namespace AnyPackageManagerCache.Controllers.NpmJs
         private readonly ILogger _logger;
         private readonly LiteDBDatabaseService<Features.NpmJs> _databaseService;
         private readonly ProxyService _proxyService;
+        private readonly PackageIndexUpdateService<Features.NpmJs> _updateService;
 
         public RegistryController(
             ProxyService proxyService, ILogger<RegistryController> logger, 
-            LiteDBDatabaseService<Features.NpmJs> databaseService)
+            LiteDBDatabaseService<Features.NpmJs> databaseService, PackageIndexUpdateService<Features.NpmJs> updateService)
         {
             this._proxyService = proxyService;
             this._logger = logger;
             this._databaseService = databaseService;
+            this._updateService = updateService;
         }
 
         internal class PackagePrefixRewriter : JsonRewriter
@@ -75,8 +77,10 @@ namespace AnyPackageManagerCache.Controllers.NpmJs
 
             var remoteUrl = $"{packageName}";
             return this._proxyService.GetPackageInfoAsync(
-                this, this._databaseService, packageName, NpmJsHttpClient, remoteUrl, new PackagePrefixRewriter(this), 
-                logger: this._logger);
+                this, this._databaseService, packageName, NpmJsHttpClient, remoteUrl, 
+                this._updateService,
+                new PackagePrefixRewriter(this), 
+                this._logger);
         }
 
         private async Task<IActionResult> InternalGetTarballAsync(string packageId, string remoteUrl, string fileName)

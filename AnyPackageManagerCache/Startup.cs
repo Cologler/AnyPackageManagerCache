@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using AnyPackageManagerCache.Services;
 using AnyPackageManagerCache.Features;
+using Microsoft.Extensions.Hosting;
 
 namespace AnyPackageManagerCache
 {
@@ -36,10 +37,17 @@ namespace AnyPackageManagerCache
             services.AddScoped(typeof(LiteDBDatabaseService<>));
             //services.AddHostedService<PypiCacheCleanupHostedService>();
             services.AddScoped<ProxyService>();
+
+            // background services:
+            // - update services:
+            services.AddSingleton(typeof(PackageIndexUpdateService<>));
+            services.AddSingleton<NpmJsSyncService>();
+
+            services.AddHostedService<BackgroundServicesLauncherHostedService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, Microsoft.AspNetCore.Hosting.IHostingEnvironment env)
         {
             if (env.IsDevelopment())
             {
