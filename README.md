@@ -3,6 +3,7 @@
 Supports:
 
 * pip (pypi)
+* npm (npmjs)
 
 ## Usage
 
@@ -21,3 +22,11 @@ index-url = http://localhost:5000/pypi/simple/
 
 * windows: `%userprofile%\pip\pip.ini`
 * unix: `~/.pip/pip.conf`
+
+### Npm
+
+Enable proxy for **pip**, set config in `.npmrc` like:
+
+``` ini
+registry = http://127.0.0.1:5000/npmjs/registry/
+```
