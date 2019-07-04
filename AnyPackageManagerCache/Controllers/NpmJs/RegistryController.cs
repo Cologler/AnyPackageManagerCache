@@ -90,12 +90,14 @@ namespace AnyPackageManagerCache.Controllers.NpmJs
             var pkg = this._databaseService.GetPackageInfoDbSet().FindById(packageId);
             if (pkg == null)
             {
+                this._logger.LogInformation("Unable to find package info, fallback to use pipe: {}", packageId);
                 return await this._proxyService.PipeAsync(this, NpmJsHttpClient, remoteUrl);
             }
 
             var hashResult = TryReadHashResultFromJson(pkg.BodyContent, fileName);
             if (hashResult == null)
             {
+                this._logger.LogInformation("Unable to find hash info, fallback to use pipe: {}", packageId);
                 return await this._proxyService.PipeAsync(this, NpmJsHttpClient, remoteUrl);
             }
 
