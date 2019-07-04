@@ -34,7 +34,7 @@ namespace AnyPackageManagerCache.Services
 
             using (var scope = this._serviceProvider.CreateScope())
             {
-                var databaseService = scope.ServiceProvider.GetRequiredService<PypiDatabaseService>();
+                var databaseService = scope.ServiceProvider.GetRequiredService<LiteDBDatabaseService<Features.Pypi>>();
 
                 var remove = new List<string>();
                 foreach (var item in databaseService.Database.FileStorage.FindAll())

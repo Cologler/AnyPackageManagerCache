@@ -21,7 +21,7 @@ namespace AnyPackageManagerCache.Filters
         public void OnActionExecuting(ActionExecutingContext context)
         {
             var service = context.HttpContext.RequestServices.GetRequiredService<FeaturesService>();
-            if (!service[this.Feature])
+            if (!service.Enable[this.Feature])
             {
                 context.Result = new NotFoundResult();
             }

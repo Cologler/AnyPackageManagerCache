@@ -14,27 +14,30 @@ using System.IO;
 using LiteDB;
 using AnyPackageManagerCache.Filters;
 using AnyPackageManagerCache.Extensions;
+using AnyPackageManagerCache.Features;
+using Microsoft.Extensions.DependencyInjection;
+using AnyPackageManagerCache.Utils;
 
-namespace AnyPackageManagerCache.Controllers
+namespace AnyPackageManagerCache.Controllers.Pypi
 {
 
     [Route("pypi/pythonhosted-packages/")]
     [ApiController]
-    [TypeFilter(typeof(FeatureFilter), Arguments = new[] { nameof(FeaturesService.Pypi) }, IsReusable = true)]
+    [TypeFilter(typeof(FeatureFilter), Arguments = new[] { nameof(Features.Pypi) }, IsReusable = true)]
     public class PythonHostedPackagesController : ControllerBase
     {
         internal readonly static string Prefix = "https://files.pythonhosted.org/packages/";
 
         private static readonly HttpClient PackagesHttpClient = new HttpClient();
-        private static readonly Regex FragmentRegex = new Regex("^#(sha256)=(.+)$", RegexOptions.IgnoreCase);
+        private static readonly Regex HashRegex = new Regex(".+#(sha256)=(.+)$", RegexOptions.IgnoreCase);
 
-        private readonly PypiDatabaseService _database;
-        private readonly ILogger<PythonHostedPackagesController> _logger;
+        private readonly LiteDBDatabaseService<Features.Pypi> _database;
+        private readonly ProxyService _proxyService;
 
-        public PythonHostedPackagesController(PypiDatabaseService database, ILogger<PythonHostedPackagesController> logger)
+        public PythonHostedPackagesController(LiteDBDatabaseService<Features.Pypi> database, ProxyService proxyService)
         {
             this._database = database;
-            this._logger = logger;
+            this._proxyService = proxyService;
         }
 
         static PythonHostedPackagesController()
@@ -43,62 +46,19 @@ namespace AnyPackageManagerCache.Controllers
         }
 
         [HttpGet("{*path}")]
-        public async Task<ActionResult<byte[]>> Get(string path)
+        public async Task<IActionResult> Get(string path)
         {
             var id = $"pythonhosted-packages/{path}";
-            var file = this._database.Database.FileStorage.FindById(id);
 
-            if (file == null)
+            var match = HashRegex.Match(path);
+            if (!match.Success)
             {
-                HttpResponseMessage response;
-                try
-                {
-                    response = await PackagesHttpClient.GetAsync(path);
-                }
-                catch (HttpRequestException e)
-                {
-                    this._logger.LogTrace("GET {} -> {}", path, e);
-                    return this.StatusCode((int)HttpStatusCode.InternalServerError, e.Message);
-                }
-
-                var segments = response.RequestMessage.RequestUri.Segments;
-                var filename = segments.Last();
-
-                byte[] buffer;
-                try
-                {
-                    buffer = await response.Content.ReadAsByteArrayAsync();
-                }
-                catch (IOException e)
-                {
-                    this._logger.LogTrace("GET {} body -> {}", path, e);
-                    return this.StatusCode((int)HttpStatusCode.InternalServerError, e.Message);
-                }                
-
-                var match = FragmentRegex.Match(response.RequestMessage.RequestUri.Fragment);
-                if (match.Success)
-                {
-                    if (!buffer.Hash(HashAlgorithmName.SHA256).Equals(match.Groups[2].Value, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return this.StatusCode((int)HttpStatusCode.InternalServerError, "hashes not matches");
-                    }
-                }
-
-                file = this._database.Database.FileStorage.Upload(id, filename, new MemoryStream(buffer));
+                return await this._proxyService.PipeAsync(this, PackagesHttpClient, path);
             }
 
-            var downloads = file.Metadata.RawValue.GetValueOrDefault("Downloads", 0) + 1;
-            if (downloads > 1)
-            {
-                this._logger.LogTrace("Hit cache: {} ({})", path, downloads);
-            }
-
-            file.Metadata["Downloads"] = downloads;
-            file.Metadata["LastUsed"] = DateTime.UtcNow;
-            this._database.Database.FileStorage.SetMetadata(id, file.Metadata);
-            var stream = file.OpenRead();
-            this.Response.RegisterForDispose(stream);
-            return this.File(stream, "binary/octet-stream");
+            return await this._proxyService.GetSmallFileAsync(this, this._database.Database, id,
+                PackagesHttpClient, path,
+                new HashResult(HashAlgorithmName.SHA256, match.Groups[2].Value));
         }
     }
 }

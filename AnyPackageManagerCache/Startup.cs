@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using AnyPackageManagerCache.Services;
+using AnyPackageManagerCache.Features;
 
 namespace AnyPackageManagerCache
 {
@@ -28,10 +29,13 @@ namespace AnyPackageManagerCache
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
+            services.AddSingleton<Pypi>();
+            services.AddSingleton<NpmJs>();
             services.AddSingleton<FeaturesService>();
             services.AddSingleton<WorkerService>();
-            services.AddScoped<PypiDatabaseService>();
+            services.AddScoped(typeof(LiteDBDatabaseService<>));
             services.AddHostedService<PypiCacheCleanupHostedService>();
+            services.AddScoped<ProxyService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
