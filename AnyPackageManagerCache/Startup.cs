@@ -34,7 +34,7 @@ namespace AnyPackageManagerCache
             services.AddSingleton<FeaturesService>();
             services.AddSingleton<WorkerService>();
             services.AddScoped(typeof(LiteDBDatabaseService<>));
-            services.AddHostedService<PypiCacheCleanupHostedService>();
+            //services.AddHostedService<PypiCacheCleanupHostedService>();
             services.AddScoped<ProxyService>();
         }
 
