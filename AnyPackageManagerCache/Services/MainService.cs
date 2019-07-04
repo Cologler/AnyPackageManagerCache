@@ -36,6 +36,8 @@ namespace AnyPackageManagerCache.Services
         /// <returns></returns>
         public async Task<IActionResult> PipeAsync(ControllerBase controller, HttpClient httpClient, string url)
         {
+            this._logger.LogInformation("Pipe remote {}{}", httpClient.BaseAddress, url);
+
             var response = await httpClient.GetOrNullAsync(url, HttpCompletionOption.ResponseHeadersRead, this._logger);
 
             if (response?.IsSuccessStatusCode != true)

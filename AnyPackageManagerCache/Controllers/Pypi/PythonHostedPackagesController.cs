@@ -30,7 +30,6 @@ namespace AnyPackageManagerCache.Controllers.Pypi
         internal readonly static string Prefix = "https://files.pythonhosted.org/packages/";
 
         private static readonly HttpClient PackagesHttpClient = new HttpClient();
-        private static readonly Regex HashRegex = new Regex(".+#(sha256)=(.+)$", RegexOptions.IgnoreCase);
 
         private readonly LiteDBDatabaseService<Features.Pypi> _database;
         private readonly MainService _proxyService;

@@ -1,4 +1,5 @@
 ﻿using AnyPackageManagerCache.Extensions;
+using AnyPackageManagerCache.Features;
 using AnyPackageManagerCache.Filters;
 using AnyPackageManagerCache.Services;
 using AnyPackageManagerCache.Utils;
@@ -15,27 +16,26 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 
-namespace AnyPackageManagerCache.Controllers.NpmJs
+namespace AnyPackageManagerCache.Controllers
 {
     [Route("npmjs/registry/")]
     [ApiController]
-    [TypeFilter(typeof(FeatureFilter), Arguments = new[] { typeof(Features.NpmJs) }, IsReusable = true)]
-    public class RegistryController : ControllerBase
+    [TypeFilter(typeof(FeatureFilter), Arguments = new[] { typeof(NpmJs) }, IsReusable = true)]
+    public class NpmJsController : ControllerBase
     {
         private static readonly string NpmJsRegistryPrefix = "https://registry.npmjs.org/";
         private readonly HttpClient _npmJsHttpClient;
 
         private readonly ILogger _logger;
-        private readonly LiteDBDatabaseService<Features.NpmJs> _databaseService;
+        private readonly LiteDBDatabaseService<NpmJs> _databaseService;
         private readonly IServiceProvider _serviceProvider;
-        private readonly MainService<Features.NpmJs> _mainService;
+        private readonly MainService<NpmJs> _mainService;
         private readonly MainService _proxyService;
-        private readonly PackageIndexUpdateService<Features.NpmJs> _updateService;
 
-        public RegistryController(IServiceProvider serviceProvider, Features.NpmJs npmJs,
-            MainService<Features.NpmJs> mainService,
-            MainService proxyService, ILogger<RegistryController> logger, 
-            LiteDBDatabaseService<Features.NpmJs> databaseService)
+        public NpmJsController(IServiceProvider serviceProvider, NpmJs npmJs,
+            MainService<NpmJs> mainService,
+            MainService proxyService, ILogger<NpmJsController> logger, 
+            LiteDBDatabaseService<NpmJs> databaseService)
         {
             this._serviceProvider = serviceProvider;
             this._mainService = mainService;
@@ -106,7 +106,7 @@ namespace AnyPackageManagerCache.Controllers.NpmJs
         [HttpGet("{packageName}/-/{fileName}")]
         public Task<IActionResult> GetTarball(string packageName, string fileName)
         {
-            this._logger.LogInformation("Download tarball: {}", fileName);
+            this._logger.LogInformation("Download tarball: {}/{}", packageName, fileName);
 
             var remoteUrl = $"{packageName}/-/{fileName}";
             return this.InternalGetTarballAsync(packageName, remoteUrl, fileName);
@@ -115,7 +115,7 @@ namespace AnyPackageManagerCache.Controllers.NpmJs
         [HttpGet("{scope}/{packageName}/-/{fileName}")]
         public Task<IActionResult> GetScopedTarball(string scope, string packageName, string fileName)
         {
-            this._logger.LogInformation("Download tarball: {}", fileName);
+            this._logger.LogInformation("Download tarball: {}/{}/{}", scope, packageName, fileName);
 
             // WebUtility.UrlEncode encode @scope/packageName to %40types%2Fjquery, but we need @types%2fjquery
             var packageFullName = $"@{scope}%2f{packageName}";

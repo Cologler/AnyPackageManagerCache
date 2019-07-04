@@ -53,8 +53,11 @@ namespace AnyPackageManagerCache.Controllers.Pypi
         public Task<IActionResult> Get() => this._proxyService.PipeAsync(this, SimpleHttpClient, "");
 
         [HttpGet("{packageName}")]
-        public Task<IActionResult> Get(string packageName) 
-            => this._mainService.GetPackageIndexInfoAsync(this, packageName, new PrefixRewriter(this), this._logger);
+        public Task<IActionResult> Get(string packageName)
+        {
+            this._logger.LogInformation("Query package: {}", packageName);
+            return this._mainService.GetPackageIndexInfoAsync(this, packageName, new PrefixRewriter(this), this._logger);
+        }
 
         private class PrefixRewriter : HtmlRewriter
         {
@@ -94,17 +97,6 @@ namespace AnyPackageManagerCache.Controllers.Pypi
                     }
                 }
             }
-        }
-
-        public static async Task TryUpdatePackageIndexAsync(string packageName, string remoteUrl, IServiceProvider provider, ILogger logger)
-        {
-            var response = await SimpleHttpClient.GetOrNullAsync(remoteUrl, HttpCompletionOption.ResponseContentRead, logger);
-            if (response?.IsSuccessStatusCode == true)
-            {
-                provider.GetRequiredService<LiteDBDatabaseService<Features.Pypi>>()
-                    .UpdatePackageIndex(packageName, await response.Content.ReadAsStringAsync());
-            }
-            response?.Dispose();
         }
     }
 }
