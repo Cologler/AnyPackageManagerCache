@@ -1,0 +1,22 @@
+sudo: required
+dist: xenial
+language: csharp
+solution: AnyPackageManagerCache.sln
+dotnet: 2.2.300
+script:
+ - ls
+ - dotnet restore
+ - dotnet publish -c Release /p:PublishProfile="AnyPackageManagerCache\Properties\PublishProfiles\FolderProfile.pubxml"
+before_deploy:
+ - cd AnyPackageManagerCache/bin/Release/netcoreapp2.2
+ - rm apmc
+ - mv publish apmc
+ - tar -cf apmc.tar.gz apmc
+deploy:
+  provider: releases
+  api_key: $GITHUB_TOKEN
+  file: apmc.tar.gz
+  skip_cleanup: true
+  draft: true
+  on:
+    tags: true
