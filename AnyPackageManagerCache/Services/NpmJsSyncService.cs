@@ -56,21 +56,29 @@ namespace AnyPackageManagerCache.Services
 
         private async Task UpdateAsync()
         {
-            var response = await _http.GetAsync($"_changes?feed=continuous&since=now", HttpCompletionOption.ResponseHeadersRead);
-            var serializer = new JsonSerializer();
-            var streamReader = new StreamReader(await response.Content.ReadAsStreamAsync(), Encoding.UTF8);
-            using (var reader = new JsonTextReader(streamReader))
+            try
             {
-                reader.CloseInput = false;
-                reader.SupportMultipleContent = true;
-                while (reader.Read())
+                var serializer = new JsonSerializer();
+
+                using (var response = await _http.GetAsync($"_changes?feed=continuous&since=now", HttpCompletionOption.ResponseHeadersRead))
+                using (var streamReader = new StreamReader(await response.Content.ReadAsStreamAsync(), Encoding.UTF8))
+                using (var reader = new JsonTextReader(streamReader))
                 {
-                    var change = serializer.Deserialize<ChangeItem>(reader);                    
-                    if (this._localIndexes.Contains(change.Id))
+                    reader.CloseInput = false;
+                    reader.SupportMultipleContent = true;
+                    while (reader.Read())
                     {
-                        this._updateHostedService.Add(change.Id);
+                        var change = serializer.Deserialize<ChangeItem>(reader);
+                        if (this._localIndexes.Contains(change.Id))
+                        {
+                            this._updateHostedService.Add(change.Id);
+                        }
                     }
                 }
+            }
+            catch (IOException)
+            {
+                // ignore.
             }
         }
 
