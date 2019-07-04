@@ -1,5 +1,7 @@
 # AnyPackageManagerCache (apmc)
 
+Use apmc as your local registry server to speed up install packages.
+
 Supports:
 
 * pip (pypi)
@@ -15,7 +17,7 @@ Enable proxy for **pip**, edit `pip.ini` like:
 
 ``` ini
 [global]
-index-url = http://localhost:5000/pypi/simple/
+index-url = http://127.0.0.1:5000/pypi/simple/
 ```
 
 `pip.ini` should locate at:
