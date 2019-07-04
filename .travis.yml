@@ -9,6 +9,7 @@ script:
  - dotnet publish -c Release /p:PublishProfile="AnyPackageManagerCache\Properties\PublishProfiles\FolderProfile.pubxml"
 before_deploy:
  - cd AnyPackageManagerCache/bin/Release/netcoreapp2.2
+ - rm apmc
  - mv publish apmc
  - tar -cf apmc.tar.gz apmc
 deploy:
