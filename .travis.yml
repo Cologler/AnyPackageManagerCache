@@ -1,3 +1,5 @@
+sudo: required
+dist: xenial
 language: csharp
 solution: AnyPackageManagerCache.sln
 dotnet: 2.2.300
