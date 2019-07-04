@@ -17,3 +17,5 @@ deploy:
   file: apmc.tar.gz
   skip_cleanup: true
   draft: true
+  on:
+    tags: true
