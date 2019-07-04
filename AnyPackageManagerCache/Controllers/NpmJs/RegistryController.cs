@@ -3,6 +3,7 @@ using AnyPackageManagerCache.Filters;
 using AnyPackageManagerCache.Services;
 using AnyPackageManagerCache.Utils;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -30,13 +31,17 @@ namespace AnyPackageManagerCache.Controllers.NpmJs
 
         private readonly ILogger _logger;
         private readonly LiteDBDatabaseService<Features.NpmJs> _databaseService;
-        private readonly ProxyService _proxyService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly MainService<Features.NpmJs> _mainService;
+        private readonly MainService _proxyService;
         private readonly PackageIndexUpdateService<Features.NpmJs> _updateService;
 
-        public RegistryController(
-            ProxyService proxyService, ILogger<RegistryController> logger, 
+        public RegistryController(IServiceProvider serviceProvider, MainService<Features.NpmJs> mainService,
+            MainService proxyService, ILogger<RegistryController> logger, 
             LiteDBDatabaseService<Features.NpmJs> databaseService, PackageIndexUpdateService<Features.NpmJs> updateService)
         {
+            this._serviceProvider = serviceProvider;
+            this._mainService = mainService;
             this._proxyService = proxyService;
             this._logger = logger;
             this._databaseService = databaseService;
@@ -75,12 +80,7 @@ namespace AnyPackageManagerCache.Controllers.NpmJs
         {
             this._logger.LogInformation("Query package: {}", packageName);
 
-            var remoteUrl = $"{packageName}";
-            return this._proxyService.GetPackageInfoAsync(
-                this, this._databaseService, packageName, NpmJsHttpClient, remoteUrl, 
-                this._updateService,
-                new PackagePrefixRewriter(this), 
-                this._logger);
+            return this._mainService.GetPackageIndexInfoAsync(this, packageName, new PackagePrefixRewriter(this), this._logger);
         }
 
         private async Task<IActionResult> InternalGetTarballAsync(string packageId, string remoteUrl, string fileName)

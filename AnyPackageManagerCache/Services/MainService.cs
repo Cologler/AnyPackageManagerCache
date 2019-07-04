@@ -1,4 +1,5 @@
 ﻿using AnyPackageManagerCache.Extensions;
+using AnyPackageManagerCache.Features;
 using AnyPackageManagerCache.Utils;
 using LiteDB;
 using Microsoft.AspNetCore.Mvc;
@@ -15,12 +16,12 @@ using System.Threading.Tasks;
 
 namespace AnyPackageManagerCache.Services
 {
-    public class ProxyService
+    public class MainService
     {
-        private readonly IServiceProvider _serviceProvider;
-        private readonly ILogger _logger;
+        protected readonly IServiceProvider _serviceProvider;
+        protected readonly ILogger _logger;
 
-        public ProxyService(IServiceProvider serviceProvider, ILogger<ProxyService> logger)
+        public MainService(IServiceProvider serviceProvider, ILogger<MainService> logger)
         {
             this._serviceProvider = serviceProvider;
             this._logger = logger;
@@ -103,13 +104,25 @@ namespace AnyPackageManagerCache.Services
             controller.Response.RegisterForDispose(stream);
             return controller.File(stream, "binary/octet-stream", file.Filename);
         }
+    }
 
-        public async Task<IActionResult> GetPackageInfoAsync(ControllerBase controller,
-            ILiteDBDatabaseService databaseService, string packageName,
-            HttpClient httpClient, string remoteUrl, IPackageIndexUpdateService updateService, 
+    public class MainService<T> : MainService
+        where T : IFeature
+    {
+        private readonly T _feature;
+
+        public MainService(IServiceProvider serviceProvider, ILogger<MainService> logger, T feature)
+            : base(serviceProvider, logger)
+        {
+            this._feature = feature;
+        }
+
+        public async Task<IActionResult> GetPackageIndexInfoAsync(ControllerBase controller, string packageName, 
             ITextRewriter rewriter = null, ILogger logger = null)
         {
             logger = logger ?? this._logger;
+
+            var databaseService = this._serviceProvider.GetRequiredService<LiteDBDatabaseService<T>>();
 
             var dbset = databaseService.GetPackageInfoDbSet();
             var packageInfo = dbset.FindById(packageName);
@@ -117,12 +130,15 @@ namespace AnyPackageManagerCache.Services
 
             if (packageInfo == null || (packageInfo.Updated + TimeSpan.FromSeconds(600)) < DateTime.UtcNow)
             {
+                var httpClient = this._feature.PackageIndexRequestBuilder.HttpClient;
+                var remoteUrl = this._feature.PackageIndexRequestBuilder.CreateUrl(packageName);
                 var response = await httpClient.GetOrNullAsync(remoteUrl, HttpCompletionOption.ResponseContentRead, logger);
 
                 if (response?.IsSuccessStatusCode == true)
                 {
                     body = await response.Content.ReadAsStringAsync();
                     databaseService.UpdatePackageIndex(packageName, body);
+                    this._serviceProvider.GetService<LocalPackagesMemoryIndexes<T>>()?.Add(packageName);
                 }
                 else if (packageInfo != null)
                 {
@@ -145,7 +161,8 @@ namespace AnyPackageManagerCache.Services
             {
                 logger.LogInformation("Hit index cache: {}", packageName);
                 body = packageInfo.BodyContent;
-                updateService.Add(packageName);
+
+                this._serviceProvider.GetService<PackageIndexUpdateService<Pypi>>()?.Add(packageName);
             }
 
             body = rewriter?.Rewrite(body) ?? body;

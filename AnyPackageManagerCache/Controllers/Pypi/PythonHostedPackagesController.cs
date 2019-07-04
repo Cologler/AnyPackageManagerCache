@@ -17,6 +17,7 @@ using AnyPackageManagerCache.Extensions;
 using AnyPackageManagerCache.Features;
 using Microsoft.Extensions.DependencyInjection;
 using AnyPackageManagerCache.Utils;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AnyPackageManagerCache.Controllers.Pypi
 {
@@ -32,12 +33,17 @@ namespace AnyPackageManagerCache.Controllers.Pypi
         private static readonly Regex HashRegex = new Regex(".+#(sha256)=(.+)$", RegexOptions.IgnoreCase);
 
         private readonly LiteDBDatabaseService<Features.Pypi> _database;
-        private readonly ProxyService _proxyService;
+        private readonly MainService _proxyService;
+        private readonly ILogger<PythonHostedPackagesController> _logger;
+        private readonly IMemoryCache _memoryCache;
 
-        public PythonHostedPackagesController(LiteDBDatabaseService<Features.Pypi> database, ProxyService proxyService)
+        public PythonHostedPackagesController(LiteDBDatabaseService<Features.Pypi> database, MainService proxyService, 
+            ILogger<PythonHostedPackagesController> logger, IMemoryCache memoryCache)
         {
             this._database = database;
             this._proxyService = proxyService;
+            this._logger = logger;
+            this._memoryCache = memoryCache;
         }
 
         static PythonHostedPackagesController()
@@ -50,15 +56,14 @@ namespace AnyPackageManagerCache.Controllers.Pypi
         {
             var id = $"pythonhosted-packages/{path}";
 
-            var match = HashRegex.Match(path);
-            if (!match.Success)
+            if (!this._memoryCache.TryGetValue<HashResult>(path, out var hashResult))
             {
+                this._logger.LogInformation("Unable to parse hash from {}, fallback to use pipe.", path);
                 return await this._proxyService.PipeAsync(this, PackagesHttpClient, path);
             }
 
             return await this._proxyService.GetSmallFileAsync(this, this._database.Database, id,
-                PackagesHttpClient, path,
-                new HashResult(HashAlgorithmName.SHA256, match.Groups[2].Value));
+                PackagesHttpClient, path, hashResult);
         }
     }
 }

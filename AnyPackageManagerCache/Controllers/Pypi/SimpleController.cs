@@ -11,6 +11,10 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using AnyPackageManagerCache.Utils;
+using Microsoft.Extensions.Caching.Memory;
+using System.Text.RegularExpressions;
+using System.Security.Cryptography;
+using System.Linq;
 
 namespace AnyPackageManagerCache.Controllers.Pypi
 {
@@ -23,14 +27,23 @@ namespace AnyPackageManagerCache.Controllers.Pypi
         {
             BaseAddress = new Uri("https://pypi.org/simple/")
         };
-
+        private readonly IServiceProvider _serviceProvider;
+        private readonly MainService<Features.Pypi> _mainService;
+        private readonly ILogger<SimpleController> _logger;
+        private readonly IMemoryCache _memoryCache;
         private readonly LiteDBDatabaseService<Features.Pypi> _database;
-        private readonly ProxyService _proxyService;
+        private readonly MainService _proxyService;
         private readonly PackageIndexUpdateService<Features.Pypi> _updateService;
 
-        public SimpleController(LiteDBDatabaseService<Features.Pypi> database, ProxyService proxyService,
+        public SimpleController(IServiceProvider serviceProvider, MainService<Features.Pypi> mainService, 
+            ILogger<SimpleController> logger, IMemoryCache memoryCache,
+            LiteDBDatabaseService<Features.Pypi> database, MainService proxyService,
             PackageIndexUpdateService<Features.Pypi> updateService)
         {
+            this._serviceProvider = serviceProvider;
+            this._mainService = mainService;
+            this._logger = logger;
+            this._memoryCache = memoryCache;
             this._database = database;
             this._proxyService = proxyService;
             this._updateService = updateService;
@@ -40,34 +53,44 @@ namespace AnyPackageManagerCache.Controllers.Pypi
         public Task<IActionResult> Get() => this._proxyService.PipeAsync(this, SimpleHttpClient, "");
 
         [HttpGet("{packageName}")]
-        public Task<IActionResult> Get(string packageName)
-        {
-            var remoteUrl = $"{packageName}/";
-            return this._proxyService.GetPackageInfoAsync(
-                this, this._database, packageName, SimpleHttpClient, remoteUrl, 
-                this._updateService, new PrefixRewriter(this));
-        }
+        public Task<IActionResult> Get(string packageName) 
+            => this._mainService.GetPackageIndexInfoAsync(this, packageName, new PrefixRewriter(this), this._logger);
 
-        internal class PrefixRewriter : HtmlRewriter
+        private class PrefixRewriter : HtmlRewriter
         {
-            private readonly ControllerBase _controller;
+            private static readonly Regex HashRegex = new Regex("^(.+)#(sha256)=(.+)$", RegexOptions.IgnoreCase);
 
-            public PrefixRewriter(ControllerBase controller)
+            private readonly SimpleController _controller;
+
+            public PrefixRewriter(SimpleController controller)
             {
                 this._controller = controller;
             }
 
             protected override void RewriteCore(HtmlDocument document)
             {
-                foreach (var el in document.DocumentNode.SelectNodes("/html/body/a"))
+                var newPrefix = $"{this._controller.Request.Scheme}://{this._controller.Request.Host.ToUriComponent()}/pypi/pythonhosted-packages/";
+
+                foreach (var el in document.DocumentNode?.SelectNodes("/html/body/a") ?? Enumerable.Empty<HtmlNode>())
                 {
                     var href = el.GetAttributeValue("href", null);
                     if (href != null)
                     {
-                        var newUrl = href.Replace(
-                            PythonHostedPackagesController.Prefix,
-                            $"{this._controller.Request.Scheme}://{this._controller.Request.Host.ToUriComponent()}/pypi/pythonhosted-packages/");
-                        el.SetAttributeValue("href", newUrl);
+                        var relHref = href.Replace(PythonHostedPackagesController.Prefix, "");
+
+                        var match = HashRegex.Match(relHref);
+                        if (match.Success)
+                        {
+                            var key = match.Groups[1].Value;
+                            var value = new HashResult(HashAlgorithmName.SHA256, match.Groups[3].Value);
+                            this._controller._memoryCache.Set(key, value);
+
+                            el.SetAttributeValue("href", newPrefix + relHref);
+                        }
+                        else
+                        {
+                            this._controller._logger.LogWarning("Unable to parse hash value from {}", href);
+                        }
                     }
                 }
             }
