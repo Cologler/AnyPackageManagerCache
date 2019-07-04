@@ -20,7 +20,7 @@ namespace AnyPackageManagerCache.Controllers.Pypi
 {
     [Route("pypi/simple/")]
     [ApiController]
-    [TypeFilter(typeof(FeatureFilter), Arguments = new[] { nameof(Features.Pypi) }, IsReusable = true)]
+    [TypeFilter(typeof(FeatureFilter), Arguments = new[] { typeof(Features.Pypi) }, IsReusable = true)]
     public class SimpleController : ControllerBase
     {
         private static readonly HttpClient SimpleHttpClient = new HttpClient

@@ -19,15 +19,11 @@ namespace AnyPackageManagerCache.Controllers.NpmJs
 {
     [Route("npmjs/registry/")]
     [ApiController]
-    [TypeFilter(typeof(FeatureFilter), Arguments = new[] { nameof(Features.NpmJs) }, IsReusable = true)]
+    [TypeFilter(typeof(FeatureFilter), Arguments = new[] { typeof(Features.NpmJs) }, IsReusable = true)]
     public class RegistryController : ControllerBase
     {
         private static readonly string NpmJsRegistryPrefix = "https://registry.npmjs.org/";
-
-        private static readonly HttpClient NpmJsHttpClient = new HttpClient
-        {
-            BaseAddress = new Uri(NpmJsRegistryPrefix)
-        };
+        private readonly HttpClient _npmJsHttpClient;
 
         private readonly ILogger _logger;
         private readonly LiteDBDatabaseService<Features.NpmJs> _databaseService;
@@ -36,16 +32,17 @@ namespace AnyPackageManagerCache.Controllers.NpmJs
         private readonly MainService _proxyService;
         private readonly PackageIndexUpdateService<Features.NpmJs> _updateService;
 
-        public RegistryController(IServiceProvider serviceProvider, MainService<Features.NpmJs> mainService,
+        public RegistryController(IServiceProvider serviceProvider, Features.NpmJs npmJs,
+            MainService<Features.NpmJs> mainService,
             MainService proxyService, ILogger<RegistryController> logger, 
-            LiteDBDatabaseService<Features.NpmJs> databaseService, PackageIndexUpdateService<Features.NpmJs> updateService)
+            LiteDBDatabaseService<Features.NpmJs> databaseService)
         {
             this._serviceProvider = serviceProvider;
             this._mainService = mainService;
             this._proxyService = proxyService;
             this._logger = logger;
             this._databaseService = databaseService;
-            this._updateService = updateService;
+            this._npmJsHttpClient = npmJs.PackageIndexRequestBuilder.HttpClient;
         }
 
         internal class PackagePrefixRewriter : JsonRewriter
@@ -91,18 +88,18 @@ namespace AnyPackageManagerCache.Controllers.NpmJs
             if (pkg == null)
             {
                 this._logger.LogInformation("Unable to find package info, fallback to use pipe: {}", packageId);
-                return await this._proxyService.PipeAsync(this, NpmJsHttpClient, remoteUrl);
+                return await this._proxyService.PipeAsync(this, this._npmJsHttpClient, remoteUrl);
             }
 
             var hashResult = TryReadHashResultFromJson(pkg.BodyContent, fileName);
             if (hashResult == null)
             {
                 this._logger.LogInformation("Unable to find hash info, fallback to use pipe: {}", packageId);
-                return await this._proxyService.PipeAsync(this, NpmJsHttpClient, remoteUrl);
+                return await this._proxyService.PipeAsync(this, this._npmJsHttpClient, remoteUrl);
             }
 
             return await this._proxyService.GetSmallFileAsync(this, this._databaseService.Database, id,
-                NpmJsHttpClient, remoteUrl, hashResult.Value,
+                this._npmJsHttpClient, remoteUrl, hashResult.Value,
                 logger: this._logger);
         }
 

@@ -20,14 +20,14 @@ namespace AnyPackageManagerCache.Services
 
         private IEnumerable<IBackgroundService> GetBackgroundServices()
         {
-            var feature = this._serviceProvider.GetRequiredService<FeaturesService>();
-
-            if (feature.Enable[nameof(Pypi)])
+            var pypi = this._serviceProvider.GetRequiredService<Pypi>();
+            if (pypi.IsEnable)
             {
                 yield return this._serviceProvider.GetRequiredService<PackageIndexUpdateService<Pypi>>();
             }
 
-            if (feature.Enable[nameof(NpmJs)])
+            var npmjs = this._serviceProvider.GetRequiredService<NpmJs>();
+            if (npmjs.IsEnable)
             {
                 yield return this._serviceProvider.GetRequiredService<PackageIndexUpdateService<NpmJs>>();
                 yield return this._serviceProvider.GetRequiredService<NpmJsSyncService>();

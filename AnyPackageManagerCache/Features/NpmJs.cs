@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using AnyPackageManagerCache.Utils;
 using LiteDB;
+using Microsoft.Extensions.Configuration;
 
 namespace AnyPackageManagerCache.Features
 {
@@ -13,6 +14,12 @@ namespace AnyPackageManagerCache.Features
         public static readonly string NpmJsRegistryPrefix = "https://registry.npmjs.org/";
 
         public string LiteDBConnectString => "npmjs.litedb";
+
+        public NpmJs(IConfiguration configuration)
+        {
+            var sectionRoot = configuration.GetSection("Features:npmjs");
+            this.IsEnable = sectionRoot.Exists();
+        }
 
         public BsonMapper LiteDBMapper { get; } = new BsonMapper();
 
@@ -27,5 +34,7 @@ namespace AnyPackageManagerCache.Features
 
             public string CreateUrl(string packageName) => packageName;
         }
+
+        public bool IsEnable { get; }
     }
 }

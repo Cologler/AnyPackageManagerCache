@@ -10,5 +10,7 @@ namespace AnyPackageManagerCache.Features
         BsonMapper LiteDBMapper { get; }
 
         IRequestBuilder PackageIndexRequestBuilder { get; }
+
+        bool IsEnable { get; }
     }
 }

@@ -24,7 +24,7 @@ namespace AnyPackageManagerCache.Controllers.Pypi
 
     [Route("pypi/pythonhosted-packages/")]
     [ApiController]
-    [TypeFilter(typeof(FeatureFilter), Arguments = new[] { nameof(Features.Pypi) }, IsReusable = true)]
+    [TypeFilter(typeof(FeatureFilter), Arguments = new[] { typeof(Features.Pypi) }, IsReusable = true)]
     public class PythonHostedPackagesController : ControllerBase
     {
         internal readonly static string Prefix = "https://files.pythonhosted.org/packages/";

@@ -31,9 +31,10 @@ namespace AnyPackageManagerCache
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
+            // features
             services.AddSingleton<Pypi>();
             services.AddSingleton<NpmJs>();
-            services.AddSingleton<FeaturesService>();
+
             services.AddSingleton<WorkerService>();
             services.AddSingleton(typeof(LocalPackagesMemoryIndexes<>));
             services.AddScoped(typeof(LiteDBDatabaseService<>));
