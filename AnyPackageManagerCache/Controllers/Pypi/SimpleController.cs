@@ -27,34 +27,27 @@ namespace AnyPackageManagerCache.Controllers.Pypi
         {
             BaseAddress = new Uri("https://pypi.org/simple/")
         };
-        private readonly IServiceProvider _serviceProvider;
-        private readonly MainService<Features.Pypi> _mainService;
+
+        private readonly FeaturedServices<Features.Pypi> _pypiServices;
         private readonly ILogger<SimpleController> _logger;
         private readonly IMemoryCache _memoryCache;
-        private readonly LiteDBDatabaseService<Features.Pypi> _database;
-        private readonly PackageIndexUpdateService<Features.Pypi> _updateService;
 
-        public SimpleController(IServiceProvider serviceProvider, MainService<Features.Pypi> mainService, 
-            ILogger<SimpleController> logger, IMemoryCache memoryCache,
-            LiteDBDatabaseService<Features.Pypi> database,
-            PackageIndexUpdateService<Features.Pypi> updateService)
+        public SimpleController(FeaturedServices<Features.Pypi> pypiServices,
+            ILogger<SimpleController> logger, IMemoryCache memoryCache)
         {
-            this._serviceProvider = serviceProvider;
-            this._mainService = mainService;
+            this._pypiServices = pypiServices;
             this._logger = logger;
             this._memoryCache = memoryCache;
-            this._database = database;
-            this._updateService = updateService;
         }
 
         [HttpGet]
-        public Task<IActionResult> Get() => this._mainService.PipeAsync(this, SimpleHttpClient, "");
+        public Task<IActionResult> Get() => this._pypiServices.GetMainService().PipeAsync(this, SimpleHttpClient, "");
 
         [HttpGet("{packageName}")]
         public Task<IActionResult> Get(string packageName)
         {
             this._logger.LogInformation("Query package: {}", packageName);
-            return this._mainService.GetPackageIndexInfoAsync(this, packageName, new PrefixRewriter(this), this._logger);
+            return this._pypiServices.GetMainService().GetPackageIndexInfoAsync(this, packageName, new PrefixRewriter(this), this._logger);
         }
 
         private class PrefixRewriter : HtmlRewriter

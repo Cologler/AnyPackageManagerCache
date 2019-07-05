@@ -31,16 +31,14 @@ namespace AnyPackageManagerCache.Controllers.Pypi
 
         private static readonly HttpClient PackagesHttpClient = new HttpClient();
 
-        private readonly LiteDBDatabaseService<Features.Pypi> _database;
-        private readonly MainService<Features.Pypi> _mainService;
+        private readonly FeaturedServices<Features.Pypi> _pypiServices;
         private readonly ILogger<PythonHostedPackagesController> _logger;
         private readonly IMemoryCache _memoryCache;
 
-        public PythonHostedPackagesController(LiteDBDatabaseService<Features.Pypi> database, MainService<Features.Pypi> mainService, 
+        public PythonHostedPackagesController(FeaturedServices<Features.Pypi> pypiServices,
             ILogger<PythonHostedPackagesController> logger, IMemoryCache memoryCache)
         {
-            this._database = database;
-            this._mainService = mainService;
+            this._pypiServices = pypiServices;
             this._logger = logger;
             this._memoryCache = memoryCache;
         }
@@ -58,10 +56,11 @@ namespace AnyPackageManagerCache.Controllers.Pypi
             if (!this._memoryCache.TryGetValue<HashResult>(path, out var hashResult))
             {
                 this._logger.LogInformation("Unable to parse hash from {}, fallback to use pipe.", path);
-                return await this._mainService.PipeAsync(this, PackagesHttpClient, path);
+                return await this._pypiServices.GetMainService().PipeAsync(this, PackagesHttpClient, path);
             }
 
-            return await this._mainService.GetSmallFileAsync(this, this._database.Database, id,
+            return await this._pypiServices.GetMainService().GetSmallFileAsync(this, 
+                this._pypiServices.GetLiteDBDatabaseService().Database, id,
                 PackagesHttpClient, path, hashResult);
         }
     }

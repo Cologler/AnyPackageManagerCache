@@ -48,21 +48,16 @@ namespace AnyPackageManagerCache
             // features
             services
                 .AddSingletonBoth<IFeature, Pypi>()
-                .AddSingletonBoth<IFeature, NpmJs>();
+                .AddSingletonBoth<IFeature, NpmJs>()
+                .AddFeaturedServices();
 
             // services
             services.AddSingleton<HitAnalyticService>();
 
             services.AddSingleton<WorkerService>();
-            services.AddSingleton(typeof(LocalPackagesMemoryIndexes<>));
-            services.AddScoped(typeof(LiteDBDatabaseService<>));
             //services.AddHostedService<PypiCacheCleanupHostedService>();
-            services.AddScoped(typeof(MainService<>));
             services.AddSingleton<IMemoryCache, MemoryCache>();
 
-            // background services:
-            // - update services:
-            services.AddSingleton(typeof(PackageIndexUpdateService<>));
             services.AddSingleton<NpmJsSyncService>();
 
             services.AddHostedService<BackgroundServicesLauncherHostedService>();

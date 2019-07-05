@@ -27,19 +27,14 @@ namespace AnyPackageManagerCache.Controllers
         private readonly HttpClient _npmJsHttpClient;
 
         private readonly ILogger _logger;
-        private readonly LiteDBDatabaseService<NpmJs> _databaseService;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly MainService<NpmJs> _mainService;
+        private readonly FeaturedServices<NpmJs> _npmJsServices;
 
-        public NpmJsController(IServiceProvider serviceProvider, NpmJs npmJs,
-            MainService<NpmJs> mainService, ILogger<NpmJsController> logger, 
-            LiteDBDatabaseService<NpmJs> databaseService)
+        public NpmJsController(FeaturedServices<NpmJs> npmJsServices,
+            ILogger<NpmJsController> logger)
         {
-            this._serviceProvider = serviceProvider;
-            this._mainService = mainService;
             this._logger = logger;
-            this._databaseService = databaseService;
-            this._npmJsHttpClient = npmJs.PackageIndexRequestBuilder.HttpClient;
+            this._npmJsServices = npmJsServices;
+            this._npmJsHttpClient = npmJsServices.Feature.PackageIndexRequestBuilder.HttpClient;
         }
 
         internal class PackagePrefixRewriter : JsonRewriter
@@ -74,28 +69,29 @@ namespace AnyPackageManagerCache.Controllers
         {
             this._logger.LogInformation("Query package: {}", packageName);
 
-            return this._mainService.GetPackageIndexInfoAsync(this, packageName, new PackagePrefixRewriter(this), this._logger);
+            return this._npmJsServices.GetMainService().GetPackageIndexInfoAsync(this, packageName, new PackagePrefixRewriter(this), this._logger);
         }
 
         private async Task<IActionResult> InternalGetTarballAsync(string packageId, string remoteUrl, string fileName)
         {
             var id = $"registry.npmjs.org/{remoteUrl}";
 
-            var pkg = this._databaseService.GetPackageInfoDbSet().FindById(packageId);
+            var databaseService = this._npmJsServices.GetLiteDBDatabaseService();
+            var pkg = databaseService.GetPackageInfoDbSet().FindById(packageId);
             if (pkg == null)
             {
                 this._logger.LogInformation("Unable to find package info, fallback to use pipe: {}", packageId);
-                return await this._mainService.PipeAsync(this, this._npmJsHttpClient, remoteUrl);
+                return await this._npmJsServices.GetMainService().PipeAsync(this, this._npmJsHttpClient, remoteUrl);
             }
 
             var hashResult = TryReadHashResultFromJson(pkg.BodyContent, fileName);
             if (hashResult == null)
             {
                 this._logger.LogInformation("Unable to find hash info, fallback to use pipe: {}", packageId);
-                return await this._mainService.PipeAsync(this, this._npmJsHttpClient, remoteUrl);
+                return await this._npmJsServices.GetMainService().PipeAsync(this, this._npmJsHttpClient, remoteUrl);
             }
 
-            return await this._mainService.GetSmallFileAsync(this, this._databaseService.Database, id,
+            return await this._npmJsServices.GetMainService().GetSmallFileAsync(this, databaseService.Database, id,
                 this._npmJsHttpClient, remoteUrl, hashResult.Value,
                 logger: this._logger);
         }
