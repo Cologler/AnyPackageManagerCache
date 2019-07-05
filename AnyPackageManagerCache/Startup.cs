@@ -14,6 +14,7 @@ using AnyPackageManagerCache.Services;
 using AnyPackageManagerCache.Features;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Caching.Memory;
+using AnyPackageManagerCache.Extensions;
 
 namespace AnyPackageManagerCache
 {
@@ -32,8 +33,9 @@ namespace AnyPackageManagerCache
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
             // features
-            services.AddSingleton<Pypi>();
-            services.AddSingleton<NpmJs>();
+            services
+                .AddSingletonBoth<IFeature, Pypi>()
+                .AddSingletonBoth<IFeature, NpmJs>();
 
             services.AddSingleton<WorkerService>();
             services.AddSingleton(typeof(LocalPackagesMemoryIndexes<>));
