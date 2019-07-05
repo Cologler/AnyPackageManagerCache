@@ -28,7 +28,7 @@ namespace AnyPackageManagerCache.Services
                 }
                 catch (Exception e)
                 {
-                    this._logger.LogError(e.Message);
+                    this._logger.LogError(e, e.Message);
                 }
             }
         }
@@ -43,7 +43,7 @@ namespace AnyPackageManagerCache.Services
                 }
                 catch (Exception e)
                 {
-                    this._logger.LogError(e.Message);
+                    this._logger.LogError(e, e.Message);
                 }
             }
         }
@@ -58,7 +58,7 @@ namespace AnyPackageManagerCache.Services
                 }
                 catch (Exception e)
                 {
-                    this._logger.LogError(e.Message);
+                    this._logger.LogError(e, e.Message);
                 }
             }
         }
@@ -73,7 +73,7 @@ namespace AnyPackageManagerCache.Services
                 }
                 catch (Exception e)
                 {
-                    this._logger.LogError(e.Message);
+                    this._logger.LogError(e, e.Message);
                 }
             }
         }
