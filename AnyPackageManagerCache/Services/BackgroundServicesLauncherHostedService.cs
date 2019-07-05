@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,18 +21,24 @@ namespace AnyPackageManagerCache.Services
 
         private IEnumerable<IBackgroundService> GetBackgroundServices()
         {
-            var pypi = this._serviceProvider.GetRequiredService<Pypi>();
-            if (pypi.IsEnable)
-            {
-                yield return this._serviceProvider.GetRequiredService<PackageIndexUpdateService<Pypi>>();
-            }
+            return this._serviceProvider
+                .GetRequiredService<IEnumerable<IFeaturedServices>>()
+                .Where(z => z.Feature.IsEnable)
+                .Select(z => z.GetBackgroundServices())
+                .SelectMany(z => z);
 
-            var npmjs = this._serviceProvider.GetRequiredService<NpmJs>();
-            if (npmjs.IsEnable)
-            {
-                yield return this._serviceProvider.GetRequiredService<PackageIndexUpdateService<NpmJs>>();
-                yield return this._serviceProvider.GetRequiredService<NpmJsSyncService>();
-            }
+            //var pypi = this._serviceProvider.GetRequiredService<Pypi>();
+            //if (pypi.IsEnable)
+            //{
+            //    yield return this._serviceProvider.GetRequiredService<PackageIndexUpdateService<Pypi>>();
+            //}
+
+            //var npmjs = this._serviceProvider.GetRequiredService<NpmJs>();
+            //if (npmjs.IsEnable)
+            //{
+            //    yield return this._serviceProvider.GetRequiredService<PackageIndexUpdateService<NpmJs>>();
+            //    yield return this._serviceProvider.GetRequiredService<NpmJsSyncService>();
+            //}
         }
 
         public Task StartAsync(CancellationToken cancellationToken)

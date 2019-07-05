@@ -58,7 +58,7 @@ namespace AnyPackageManagerCache
             //services.AddHostedService<PypiCacheCleanupHostedService>();
             services.AddSingleton<IMemoryCache, MemoryCache>();
 
-            services.AddSingleton<NpmJsSyncService>();
+            services.AddHostedService<NpmJsSyncService>();
 
             services.AddHostedService<BackgroundServicesLauncherHostedService>();
         }

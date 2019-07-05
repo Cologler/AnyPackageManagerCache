@@ -2,6 +2,7 @@
 using AnyPackageManagerCache.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -15,25 +16,28 @@ using System.Threading.Tasks;
 
 namespace AnyPackageManagerCache.Services
 {
-    internal class NpmJsSyncService : IBackgroundService, IDisposable
+    internal class NpmJsSyncService : IDisposable, IHostedService
     {
         public static readonly HttpClient _http = new HttpClient
         {
             BaseAddress = new Uri("https://replicate.npmjs.com/")
         };
 
-        private readonly IServiceProvider _serviceProvider;
+        private readonly NpmJs _npmJs;
         private readonly PackageIndexUpdateService<NpmJs> _updateHostedService;
         private readonly LocalPackagesMemoryIndexes<NpmJs> _localIndexes;
-        private volatile bool _stoped = true;
+        private readonly ILogger<NpmJsSyncService> _logger;
         private CancellationTokenSource _cancellationTokenSource;
 
         public NpmJsSyncService(
+            NpmJs npmJs,
             PackageIndexUpdateService<NpmJs> updateHostedService, 
-            LocalPackagesMemoryIndexes<NpmJs> localIndexes)
+            LocalPackagesMemoryIndexes<NpmJs> localIndexes, ILogger<NpmJsSyncService> logger)
         {
+            this._npmJs = npmJs;
             this._updateHostedService = updateHostedService;
             this._localIndexes = localIndexes;
+            this._logger = logger;
         }
 
         public void Dispose()
@@ -41,16 +45,25 @@ namespace AnyPackageManagerCache.Services
             this._cancellationTokenSource?.Dispose();
         }
 
-        public void Start()
+        public Task StartAsync(CancellationToken cancellationToken)
         {
-            this._stoped = false;
-            this.BeginRun();
+            if (this._npmJs.IsEnable)
+            {
+                this._logger.LogInformation("NpmJs sync server started.");
+                Task.Run(this.BeginRun);
+            }
+            else
+            {
+                this._logger.LogInformation("NpmJs sync server ignore since NpmJs is disabled.");
+            }
+
+            return Task.CompletedTask;
         }
 
-        public void Stop()
+        public Task StopAsync(CancellationToken cancellationToken)
         {
             this._cancellationTokenSource.Cancel();
-            this._stoped = true;
+            return Task.CompletedTask;
         }
 
         private async void BeginRun()
@@ -59,7 +72,7 @@ namespace AnyPackageManagerCache.Services
 
             try
             {
-                while (!this._stoped)
+                while (!this._cancellationTokenSource.IsCancellationRequested)
                 {
                     await this.UpdateAsync(this._cancellationTokenSource.Token);
                 }
