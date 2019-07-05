@@ -40,7 +40,11 @@ namespace AnyPackageManagerCache.Services
 
         public void Start() => Task.Run(this.BeginRun);
 
-        public void Stop() => this._packageNames.CompleteAdding();
+        public void Stop()
+        {
+            this._packageNames.CompleteAdding();
+            while (this._packageNames.TryTake(out _)) ;
+        }
 
         private async void BeginRun()
         {
