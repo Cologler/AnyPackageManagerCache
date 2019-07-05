@@ -21,16 +21,19 @@ namespace AnyPackageManagerCache.Services
         where T : IFeature
     {
         protected readonly IServiceProvider _serviceProvider;
+        private readonly FeaturedServices<T> _featuredServices;
         protected readonly ILogger _logger;
         protected readonly HitAnalyticService _hitService;
         private readonly T _feature;
 
-        public MainService(IServiceProvider serviceProvider, T feature, ILogger<MainService<T>> logger, HitAnalyticService hitService)
+        public MainService(IServiceProvider serviceProvider, FeaturedServices<T> featuredServices, 
+            ILogger<MainService<T>> logger, HitAnalyticService hitService)
         {
             this._serviceProvider = serviceProvider;
+            this._featuredServices = featuredServices;
             this._logger = logger;
             this._hitService = hitService;
-            this._feature = feature;
+            this._feature = featuredServices.Feature;
         }
 
         /// <summary>
@@ -55,6 +58,16 @@ namespace AnyPackageManagerCache.Services
             var stream = await response.Content.ReadAsStreamAsync();
             controller.Response.RegisterForDispose(stream);
             return controller.File(stream, response.Content.Headers.ContentType.MediaType);
+        }
+
+        public Task<IActionResult> GetSmallFileAsync(ControllerBase controller, string fileId,
+            HttpClient httpClient, string url,
+            HashResult hashResult, string fileName = null, ILogger logger = null)
+        {
+            return this.GetSmallFileAsync(controller, 
+                this._featuredServices.GetLiteDBDatabaseService().Database, fileId, 
+                httpClient, url, 
+                hashResult, fileName, logger);
         }
 
         public async Task<IActionResult> GetSmallFileAsync(ControllerBase controller,

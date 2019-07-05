@@ -32,12 +32,16 @@ namespace AnyPackageManagerCache.Services
             this.Feature = feature;
         }
 
-        public MainService<T> GetMainService() => this._serviceProvider.GetService<MainService<T>>();
+        public MainService<T> GetMainService() 
+            => this._serviceProvider.GetService<MainService<T>>();
 
-        public LocalPackagesMemoryIndexes<T> GetLocalPackagesMemoryIndexes() => this._serviceProvider.GetService<LocalPackagesMemoryIndexes<T>>();
+        public LocalPackagesMemoryIndexes<T> GetLocalPackagesMemoryIndexes() 
+            => this._serviceProvider.GetService<LocalPackagesMemoryIndexes<T>>();
 
-        public LiteDBDatabaseService<T> GetLiteDBDatabaseService() => this._serviceProvider.GetService<LiteDBDatabaseService<T>>();
+        public LiteDBDatabaseService<T> GetLiteDBDatabaseService() 
+            => this._serviceProvider.GetService<LiteDBDatabaseService<T>>();
 
-        public PackageIndexUpdateService<T> GetPackageIndexUpdateService() => this._serviceProvider.GetService<PackageIndexUpdateService<T>>();
+        public PackageIndexUpdateService<T> GetPackageIndexUpdateService() 
+            => this._serviceProvider.GetService<PackageIndexUpdateService<T>>();
     }
 }

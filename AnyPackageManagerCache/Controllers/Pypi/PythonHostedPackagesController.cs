@@ -59,8 +59,7 @@ namespace AnyPackageManagerCache.Controllers.Pypi
                 return await this._pypiServices.GetMainService().PipeAsync(this, PackagesHttpClient, path);
             }
 
-            return await this._pypiServices.GetMainService().GetSmallFileAsync(this, 
-                this._pypiServices.GetLiteDBDatabaseService().Database, id,
+            return await this._pypiServices.GetMainService().GetSmallFileAsync(this, id,
                 PackagesHttpClient, path, hashResult);
         }
     }
