@@ -16,14 +16,18 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Caching.Memory;
 using AnyPackageManagerCache.Extensions;
 using AnyPackageManagerCache.Services.Analytics;
+using Newtonsoft.Json;
 
 namespace AnyPackageManagerCache
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        private readonly Microsoft.AspNetCore.Hosting.IHostingEnvironment _environment;
+
+        public Startup(IConfiguration configuration, Microsoft.AspNetCore.Hosting.IHostingEnvironment environment)
         {
             this.Configuration = configuration;
+            this._environment = environment;
         }
 
         public IConfiguration Configuration { get; }
@@ -31,7 +35,15 @@ namespace AnyPackageManagerCache
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddMvc()
+                .SetCompatibilityVersion(CompatibilityVersion.Version_2_2)
+                .AddJsonOptions(options =>
+                {
+                    if (this._environment.IsDevelopment())
+                    {
+                        options.SerializerSettings.Formatting = Formatting.Indented;
+                    }                    
+                }); 
 
             // features
             services
