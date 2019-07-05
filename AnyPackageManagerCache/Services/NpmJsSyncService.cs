@@ -15,17 +15,18 @@ using System.Threading.Tasks;
 
 namespace AnyPackageManagerCache.Services
 {
-    internal class NpmJsSyncService : IBackgroundService
+    internal class NpmJsSyncService : IBackgroundService, IDisposable
     {
         public static readonly HttpClient _http = new HttpClient
         {
             BaseAddress = new Uri("https://replicate.npmjs.com/")
         };
 
-        private volatile bool _stoped = true;
         private readonly IServiceProvider _serviceProvider;
         private readonly PackageIndexUpdateService<NpmJs> _updateHostedService;
         private readonly LocalPackagesMemoryIndexes<NpmJs> _localIndexes;
+        private volatile bool _stoped = true;
+        private CancellationTokenSource _cancellationTokenSource;
 
         public NpmJsSyncService(
             PackageIndexUpdateService<NpmJs> updateHostedService, 
@@ -33,6 +34,11 @@ namespace AnyPackageManagerCache.Services
         {
             this._updateHostedService = updateHostedService;
             this._localIndexes = localIndexes;
+        }
+
+        public void Dispose()
+        {
+            this._cancellationTokenSource?.Dispose();
         }
 
         public void Start()
@@ -43,18 +49,25 @@ namespace AnyPackageManagerCache.Services
 
         public void Stop()
         {
+            this._cancellationTokenSource.Cancel();
             this._stoped = true;
         }
 
         private async void BeginRun()
         {
-            while (!this._stoped)
+            this._cancellationTokenSource = new CancellationTokenSource();
+
+            try
             {
-                await this.UpdateAsync();
+                while (!this._stoped)
+                {
+                    await this.UpdateAsync(this._cancellationTokenSource.Token);
+                }
             }
+            catch (OperationCanceledException) { }            
         }
 
-        private async Task UpdateAsync()
+        private async Task UpdateAsync(CancellationToken token)
         {
             try
             {
@@ -66,8 +79,9 @@ namespace AnyPackageManagerCache.Services
                 {
                     reader.CloseInput = false;
                     reader.SupportMultipleContent = true;
-                    while (reader.Read())
+                    while (await reader.ReadAsync(token))
                     {
+                        token.ThrowIfCancellationRequested();
                         var change = serializer.Deserialize<ChangeItem>(reader);
                         if (this._localIndexes.Contains(change.Id))
                         {
