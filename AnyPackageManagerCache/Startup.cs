@@ -51,7 +51,7 @@ namespace AnyPackageManagerCache
                 .AddSingletonBoth<IFeature, NpmJs>();
 
             // services
-            services.AddSingleton<HitService>();
+            services.AddSingleton<HitAnalyticService>();
 
             services.AddSingleton<WorkerService>();
             services.AddSingleton(typeof(LocalPackagesMemoryIndexes<>));

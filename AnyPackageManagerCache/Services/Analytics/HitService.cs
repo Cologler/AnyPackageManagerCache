@@ -7,25 +7,42 @@ using System.Threading.Tasks;
 
 namespace AnyPackageManagerCache.Services.Analytics
 {
-    public class HitService
+    public class HitAnalyticService
     {
-        private readonly Dictionary<IFeature, HitData> _datas;
+        private readonly Dictionary<IFeature, FeatureData> _datas;
 
-        public HitService(IEnumerable<IFeature> features)
+        public HitAnalyticService(IEnumerable<IFeature> features)
         {
-            this._datas = features.ToDictionary(z => z, z => new HitData());
+            this._datas = features.ToDictionary(z => z, z => new FeatureData());
         }
 
-        public HitData Get(IFeature feature) => this._datas[feature];
+        public FeatureData Get(IFeature feature) => this._datas[feature];
 
-        public class HitData
+        public class FeatureData
         {
-            public Count QueryIndex { get; } = new Count();
+            public HitProperty QueryIndex { get; } = new HitProperty();
 
-            public Count GetFileCache { get; } = new Count();
-        } 
+            public HitProperty GetFileCache { get; } = new HitProperty();
+        }
 
-        public class Count
+        public class HitProperty
+        {
+            public Counter HitCount { get; } = new Counter();
+
+            public Counter MissCount { get; } = new Counter();
+
+            /// <summary>
+            /// Increment hit count
+            /// </summary>
+            public void Hit() => this.HitCount.Increment();
+
+            /// <summary>
+            /// Increment miss count
+            /// </summary>
+            public void Miss() => this.MissCount.Increment();
+        }
+
+        public class Counter
         {
             private int _count;
 

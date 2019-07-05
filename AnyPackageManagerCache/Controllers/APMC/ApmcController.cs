@@ -42,15 +42,23 @@ namespace AnyPackageManagerCache.Controllers.APMC
             var features = this._serviceProvider.GetServices<IFeature>()
                 .Where(z => z.IsEnable)
                 .ToList();
-            var hitService = this._serviceProvider.GetRequiredService<HitService>();
+            var hitService = this._serviceProvider.GetRequiredService<HitAnalyticService>();
             var analytics = features
                 .Select(z => new
                 {
                     z.Name,
                     HitInfo = new
                     {
-                        QueryIndex = hitService.Get(z).QueryIndex.Value,
-                        GetFileCache = hitService.Get(z).GetFileCache.Value
+                        QueryIndex = new
+                        {
+                            Hit = hitService.Get(z).QueryIndex.HitCount.Value,
+                            Miss = hitService.Get(z).QueryIndex.MissCount.Value
+                        },
+                        GetFileCache = new
+                        {
+                            Hit = hitService.Get(z).GetFileCache.HitCount.Value,
+                            Miss = hitService.Get(z).GetFileCache.MissCount.Value
+                        },
                     }
                 })
                 .ToList();

@@ -22,10 +22,10 @@ namespace AnyPackageManagerCache.Services
     {
         protected readonly IServiceProvider _serviceProvider;
         protected readonly ILogger _logger;
-        protected readonly HitService _hitService;
+        protected readonly HitAnalyticService _hitService;
         private readonly T _feature;
 
-        public MainService(IServiceProvider serviceProvider, T feature, ILogger<MainService<T>> logger, HitService hitService)
+        public MainService(IServiceProvider serviceProvider, T feature, ILogger<MainService<T>> logger, HitAnalyticService hitService)
         {
             this._serviceProvider = serviceProvider;
             this._logger = logger;
@@ -68,6 +68,8 @@ namespace AnyPackageManagerCache.Services
 
             if (file == null)
             {
+                this.HitData.GetFileCache.Miss();
+
                 var response = await httpClient.GetOrNullAsync(url, logger);
                 if (response?.IsSuccessStatusCode != true)
                 {
@@ -97,13 +99,16 @@ namespace AnyPackageManagerCache.Services
                 }
 
                 file = database.FileStorage.Upload(fileId, fileName, new MemoryStream(buffer));
+            } 
+            else
+            {
+                this.HitData.GetFileCache.Hit();                
             }
 
             var downloads = file.Metadata.RawValue.GetValueOrDefault("Downloads", 0) + 1;
             if (downloads > 1)
             {
                 logger.LogInformation("Hit file cache: {} ({})", url, downloads);
-                this.HitData.GetFileCache.Increment();
             }
 
             file.Metadata["Downloads"] = downloads;
@@ -127,6 +132,7 @@ namespace AnyPackageManagerCache.Services
 
             if (packageInfo == null || (packageInfo.Updated + TimeSpan.FromSeconds(600)) < DateTime.UtcNow)
             {
+                this.HitData.QueryIndex.Miss();
                 var httpClient = this._feature.PackageIndexRequestBuilder.HttpClient;
                 var remoteUrl = this._feature.PackageIndexRequestBuilder.CreateUrl(packageName);
                 var response = await httpClient.GetOrNullAsync(remoteUrl, HttpCompletionOption.ResponseContentRead, logger);
@@ -156,8 +162,8 @@ namespace AnyPackageManagerCache.Services
             }
             else
             {
+                this.HitData.QueryIndex.Hit();
                 logger.LogInformation("Hit index cache: {}", packageName);
-                this.HitData.QueryIndex.Increment();
                 body = packageInfo.BodyContent;
 
                 this._serviceProvider.GetService<PackageIndexUpdateService<Pypi>>()?.Add(packageName);
@@ -167,6 +173,6 @@ namespace AnyPackageManagerCache.Services
             return controller.Content(body, "text/html");
         }
 
-        public HitService.HitData HitData => this._hitService.Get(this._feature);
+        public HitAnalyticService.FeatureData HitData => this._hitService.Get(this._feature);
     }
 }
