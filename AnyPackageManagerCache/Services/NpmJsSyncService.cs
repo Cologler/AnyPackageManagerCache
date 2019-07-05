@@ -86,7 +86,7 @@ namespace AnyPackageManagerCache.Services
             {
                 var serializer = new JsonSerializer();
 
-                using (var response = await _http.GetAsync($"_changes?feed=continuous&since=now", HttpCompletionOption.ResponseHeadersRead))
+                using (var response = await _http.GetAsync($"_changes?feed=continuous&since=now", HttpCompletionOption.ResponseHeadersRead, token))
                 using (var streamReader = new StreamReader(await response.Content.ReadAsStreamAsync(), Encoding.UTF8))
                 using (var reader = new JsonTextReader(streamReader))
                 {
