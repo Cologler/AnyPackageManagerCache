@@ -13,6 +13,8 @@ namespace AnyPackageManagerCache.Features
     {
         public static readonly string NpmJsRegistryPrefix = "https://registry.npmjs.org/";
 
+        public string Name => "npmjs";
+
         public string LiteDBConnectString => "npmjs.litedb";
 
         public NpmJs(IConfiguration configuration)

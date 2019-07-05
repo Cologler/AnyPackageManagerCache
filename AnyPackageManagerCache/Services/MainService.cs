@@ -1,5 +1,6 @@
 ﻿using AnyPackageManagerCache.Extensions;
 using AnyPackageManagerCache.Features;
+using AnyPackageManagerCache.Services.Analytics;
 using AnyPackageManagerCache.Utils;
 using LiteDB;
 using Microsoft.AspNetCore.Mvc;
@@ -16,15 +17,20 @@ using System.Threading.Tasks;
 
 namespace AnyPackageManagerCache.Services
 {
-    public class MainService
+    public class MainService<T>
+        where T : IFeature
     {
         protected readonly IServiceProvider _serviceProvider;
         protected readonly ILogger _logger;
+        protected readonly HitService _hitService;
+        private readonly T _feature;
 
-        public MainService(IServiceProvider serviceProvider, ILogger<MainService> logger)
+        public MainService(IServiceProvider serviceProvider, T feature, ILogger<MainService<T>> logger, HitService hitService)
         {
             this._serviceProvider = serviceProvider;
             this._logger = logger;
+            this._hitService = hitService;
+            this._feature = feature;
         }
 
         /// <summary>
@@ -97,6 +103,7 @@ namespace AnyPackageManagerCache.Services
             if (downloads > 1)
             {
                 logger.LogInformation("Hit file cache: {} ({})", url, downloads);
+                this.HitData.GetFileCache.Increment();
             }
 
             file.Metadata["Downloads"] = downloads;
@@ -105,18 +112,6 @@ namespace AnyPackageManagerCache.Services
             var stream = file.OpenRead();
             controller.Response.RegisterForDispose(stream);
             return controller.File(stream, "binary/octet-stream", file.Filename);
-        }
-    }
-
-    public class MainService<T> : MainService
-        where T : IFeature
-    {
-        private readonly T _feature;
-
-        public MainService(IServiceProvider serviceProvider, ILogger<MainService> logger, T feature)
-            : base(serviceProvider, logger)
-        {
-            this._feature = feature;
         }
 
         public async Task<IActionResult> GetPackageIndexInfoAsync(ControllerBase controller, string packageName, 
@@ -162,6 +157,7 @@ namespace AnyPackageManagerCache.Services
             else
             {
                 logger.LogInformation("Hit index cache: {}", packageName);
+                this.HitData.QueryIndex.Increment();
                 body = packageInfo.BodyContent;
 
                 this._serviceProvider.GetService<PackageIndexUpdateService<Pypi>>()?.Add(packageName);
@@ -170,5 +166,7 @@ namespace AnyPackageManagerCache.Services
             body = rewriter?.Rewrite(body) ?? body;
             return controller.Content(body, "text/html");
         }
+
+        public HitService.HitData HitData => this._hitService.Get(this._feature);
     }
 }

@@ -32,12 +32,11 @@ namespace AnyPackageManagerCache.Controllers.Pypi
         private readonly ILogger<SimpleController> _logger;
         private readonly IMemoryCache _memoryCache;
         private readonly LiteDBDatabaseService<Features.Pypi> _database;
-        private readonly MainService _proxyService;
         private readonly PackageIndexUpdateService<Features.Pypi> _updateService;
 
         public SimpleController(IServiceProvider serviceProvider, MainService<Features.Pypi> mainService, 
             ILogger<SimpleController> logger, IMemoryCache memoryCache,
-            LiteDBDatabaseService<Features.Pypi> database, MainService proxyService,
+            LiteDBDatabaseService<Features.Pypi> database,
             PackageIndexUpdateService<Features.Pypi> updateService)
         {
             this._serviceProvider = serviceProvider;
@@ -45,12 +44,11 @@ namespace AnyPackageManagerCache.Controllers.Pypi
             this._logger = logger;
             this._memoryCache = memoryCache;
             this._database = database;
-            this._proxyService = proxyService;
             this._updateService = updateService;
         }
 
         [HttpGet]
-        public Task<IActionResult> Get() => this._proxyService.PipeAsync(this, SimpleHttpClient, "");
+        public Task<IActionResult> Get() => this._mainService.PipeAsync(this, SimpleHttpClient, "");
 
         [HttpGet("{packageName}")]
         public Task<IActionResult> Get(string packageName)

@@ -11,6 +11,8 @@ namespace AnyPackageManagerCache.Features
 {
     public class Pypi : IFeature
     {
+        public string Name => "pypi";
+
         public string LiteDBConnectString => "pypi.litedb";
 
         public Pypi(IConfiguration configuration)

@@ -5,6 +5,8 @@ namespace AnyPackageManagerCache.Features
 {
     public interface IFeature
     {
+        string Name { get; }
+
         string LiteDBConnectString { get; }
 
         BsonMapper LiteDBMapper { get; }

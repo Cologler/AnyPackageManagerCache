@@ -30,16 +30,13 @@ namespace AnyPackageManagerCache.Controllers
         private readonly LiteDBDatabaseService<NpmJs> _databaseService;
         private readonly IServiceProvider _serviceProvider;
         private readonly MainService<NpmJs> _mainService;
-        private readonly MainService _proxyService;
 
         public NpmJsController(IServiceProvider serviceProvider, NpmJs npmJs,
-            MainService<NpmJs> mainService,
-            MainService proxyService, ILogger<NpmJsController> logger, 
+            MainService<NpmJs> mainService, ILogger<NpmJsController> logger, 
             LiteDBDatabaseService<NpmJs> databaseService)
         {
             this._serviceProvider = serviceProvider;
             this._mainService = mainService;
-            this._proxyService = proxyService;
             this._logger = logger;
             this._databaseService = databaseService;
             this._npmJsHttpClient = npmJs.PackageIndexRequestBuilder.HttpClient;
@@ -88,17 +85,17 @@ namespace AnyPackageManagerCache.Controllers
             if (pkg == null)
             {
                 this._logger.LogInformation("Unable to find package info, fallback to use pipe: {}", packageId);
-                return await this._proxyService.PipeAsync(this, this._npmJsHttpClient, remoteUrl);
+                return await this._mainService.PipeAsync(this, this._npmJsHttpClient, remoteUrl);
             }
 
             var hashResult = TryReadHashResultFromJson(pkg.BodyContent, fileName);
             if (hashResult == null)
             {
                 this._logger.LogInformation("Unable to find hash info, fallback to use pipe: {}", packageId);
-                return await this._proxyService.PipeAsync(this, this._npmJsHttpClient, remoteUrl);
+                return await this._mainService.PipeAsync(this, this._npmJsHttpClient, remoteUrl);
             }
 
-            return await this._proxyService.GetSmallFileAsync(this, this._databaseService.Database, id,
+            return await this._mainService.GetSmallFileAsync(this, this._databaseService.Database, id,
                 this._npmJsHttpClient, remoteUrl, hashResult.Value,
                 logger: this._logger);
         }

@@ -15,6 +15,7 @@ using AnyPackageManagerCache.Features;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Caching.Memory;
 using AnyPackageManagerCache.Extensions;
+using AnyPackageManagerCache.Services.Analytics;
 
 namespace AnyPackageManagerCache
 {
@@ -37,11 +38,13 @@ namespace AnyPackageManagerCache
                 .AddSingletonBoth<IFeature, Pypi>()
                 .AddSingletonBoth<IFeature, NpmJs>();
 
+            // services
+            services.AddSingleton<HitService>();
+
             services.AddSingleton<WorkerService>();
             services.AddSingleton(typeof(LocalPackagesMemoryIndexes<>));
             services.AddScoped(typeof(LiteDBDatabaseService<>));
             //services.AddHostedService<PypiCacheCleanupHostedService>();
-            services.AddScoped(typeof(MainService));
             services.AddScoped(typeof(MainService<>));
             services.AddSingleton<IMemoryCache, MemoryCache>();
 
