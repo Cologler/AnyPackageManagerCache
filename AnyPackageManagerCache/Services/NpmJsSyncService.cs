@@ -107,6 +107,10 @@ namespace AnyPackageManagerCache.Services
             {
                 // ignore.
             }
+            catch (HttpRequestException)
+            {
+                // ignore. 
+            }
         }
 
         private class ChangeItem
